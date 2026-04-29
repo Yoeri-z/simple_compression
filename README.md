@@ -1,97 +1,61 @@
-A flexible, type-safe, and provider agnostic media compression library for Dart and Flutter. 
-
-Unlike other compression wrappers, `simple_compression` uses a **Provider architecture**, allowing you to swap between different compression engines (like FFmpeg, Native APIs, or Cloud services) while maintaining a consistent API.
-
-## Features
-
-* **Compression tasks:** A dev friendly api that helps you manage the state and progress of compression over its duration.
-* **Compression provider** An interface that can be implemented to create custom compression handlers
-* **Configurations:** Providers define their own configuration requirements (e.g., `FFmpegConfig` for `FFmpegProvider`).
-* **FFMpeg:** This package comes with an implementation to use ffmpeg for compressing various audio-visual formats.
-
-## Getting Started
-
-Add the package to your `pubspec.yaml`:
-
-```yaml
-dependencies:
-  simple_compression: ^1.0.0
-```
+A minimal Dart wrapper for FFmpeg that simplifies compression into some easily understandable parameters.
 
 ## Usage
 
-### 1. Initialize a Provider
-Currently, the package supports `FFmpegProvider`. You just need the path to your FFmpeg binary.
+Initialize the compressor with your chosen constraints. The `compress` method returns a `CompressionTask` used to track progress or await completion.
 
+### Example
 ```dart
-import 'package:simple_compression/simple_compression.dart';
+void main() async {
+  final compressor = SimpleCompressor(
+    constraints: VideoConstraints(maxFileSizeMb: 10, maxWidth: 720),
+  );
 
-final ffmpeg = FFmpegProvider(binaryPath: '/assets/bin/ffmpeg');
-```
+  final task = compressor.compress(
+    input: File('input.mp4'),
+    outputPath: 'output.mp4',
+  );
 
-### 2. Configure the Compression
-Configurations are specific to the provider to ensure you have access to all the engine's unique features.
+  // Listen to real-time progress (0.0 to 1.0)
+  task.progress.listen((p) => print('Progress: ${p * 100}%'));
 
-```dart
-final config = FFmpegConfig(
-  width: 1280,            // Rescale to 720p (aspect ratio preserved)
-  crf: 28,                // Quality setting (0-51)
-  preset: 'faster',       // Encoding speed
-  forceMono: true,        // Convert audio to mono
-);
-```
-
-### 3. Do a compression
-The `CompressionTask` manages the lifecycle. You can start it and `await` the result later.
-
-```dart
-final task = CompressionTask(
-  sourceFile: File('input.mp4'),
-  provider: ffmpeg,
-  config: config,
-);
-
-// Start the process
-task.start('/path/to/output.mp4');
-
-// Listen to progress
-task.progressStream.listen((p) => print('Progress: ${p * 100}%'));
-
-// Await the final file
-try {
-  File result = await task.result;
-  print('Saved to: ${result.path}');
-} catch (e) {
-  print('Compression failed: $e');
-}
-```
-## Custom Providers
-
-You can implement your own provider by extending the base class:
-
-```dart
-class MyCustomProvider implements CompressionProvider<MyConfig> {
-  @override
-  Stream<double> compress(File file, MyConfig config, String ouputPath) async* {
-    // Implement your logic here
-  }
-  
-  @override
-  bool isFormatSupported(MediaFormat format) => true;
-  
-  @override
-  String get name => 'CustomProvider';
+  // Or simply await completion
+  await task.onComplete;
+  print('Compression finished.');
 }
 ```
 
-## Troubleshooting FFmpeg on Linux (Fedora)
+## Media Constraints
 
-If you encounter `Unknown encoder 'libx264'`, ensure you have the full FFmpeg version installed rather than the "free" version provided by default repositories.
+You can swap the compressor's behavior by passing different constraint objects to the constructor:
 
-```bash
-sudo dnf swap ffmpeg-free ffmpeg --allowerasing
-```
+* **VideoConstraints**: Set `maxFileSizeMb` (per minute) and `maxWidth`. Height is automatically adjusted to an even number.
+* **AudioConstraints**: Set `maxFileSizeMb` (per minute) and optional `forceMono`.
+* **ImageConstraints**: Set `maxFileSizeMb` (total target) and `maxWidth`.
+
+## Configuration
+
+### SimpleCompressor
+| Parameter | Type | Description |
+| :--- | :--- | :--- |
+| `constraints` | `MediaConstraints` | The settings for the task (Video, Audio, or Image). |
+| `ffmpegPath` | `String?` | Path to FFmpeg. Defaults to `ffmpeg` in system PATH. |
+
+### CompressionTask (Return Object)
+| Property | Type | Description |
+| :--- | :--- | :--- |
+| `progress` | `Stream<double>` | A stream of the current progress (0.0 to 1.0). |
+| `onComplete` | `Future<void>` | A future that resolves when the compression finishes. |
+
+## Requirements
+Requires `ffmpeg`to be available in your system PATH or provided to simple compressor through `ffmpegPath`. If you are using this it is recommended to bundle a static binary with some built in video codecs, some good sources for these have been summarized in the table below.
+
+| OS | Source | Recommended Build |
+| :--- | :--- | :--- |
+| **Windows** | [Gyan.dev](https://www.gyan.dev/ffmpeg/builds/) | `ffmpeg-release-essentials.zip` |
+| **Linux** | [John Van Sickle](https://johnvansickle.com/ffmpeg/) | `ffmpeg-release-amd64-static.tar.xz` |
+| **macOS** | [Evermeet.cx](https://evermeet.cx/ffmpeg/) | `ffmpeg`|
+
 
 ## License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT

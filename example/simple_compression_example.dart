@@ -5,23 +5,20 @@ import 'package:simple_compression/simple_compression.dart';
 // For this example to work without making any changes
 // ffmpeg should be available on path.
 void main() async {
-  final video = File('assets/cute_cat_video.mp4');
-
-  final task = CompressionTask(
-    sourceFile: video,
-    provider: FFmpegProvider(),
-    config: FFmpegConfig(videoBitrate: '1M', videoCodec: 'libopenh264'),
+  final compressor = SimpleCompressor(
+    constraints: VideoConstraints(maxFileSizeMb: 10, maxWidth: 720),
   );
 
-  task.start('out/compressed_cat_video.mp4');
-  task.progressStream.listen(
-    (progress) => print('Current progress: ${progress * 100}%'),
+  final task = compressor.compress(
+    input: File('assets/cute_cat_video.mp4'),
+    outputPath: 'out/compressed_cat_video.mp4',
   );
 
-  try {
-    final result = await task.result;
-    print('Outputted compressed video at: ${result.absolute.path}');
-  } catch (_) {
-    print('Compression task failed :(');
+  print('Starting compression');
+
+  await for (final percentage in task.progress) {
+    print('Progress: ${percentage * 100}');
   }
+
+  print('Finished compression');
 }
