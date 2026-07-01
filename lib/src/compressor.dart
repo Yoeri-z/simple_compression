@@ -26,11 +26,13 @@ class SimpleCompressor {
   /// Returns a [CompressionTask] which holds the progress stream and final result.
   CompressionTask compress({required File input, required String outputPath}) {
     return CompressionTask._(
-      _engine.compress(
-        input: input,
-        outputPath: outputPath,
-        constraints: constraints,
-      ),
+      _engine
+          .compress(
+            input: input,
+            outputPath: outputPath,
+            constraints: constraints,
+          )
+          .asBroadcastStream(),
     );
   }
 }
