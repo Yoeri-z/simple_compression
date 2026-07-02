@@ -4,28 +4,6 @@ import 'dart:io';
 import 'package:simple_compression/src/engines/compression_engine.dart';
 import 'package:simple_compression/src/media_constraints.dart';
 
-enum MediaType { video, audio, image, unknown }
-
-class FileDetails {
-  final MediaType type;
-  final String format;
-  final Duration? duration;
-  final int? width;
-  final int? height;
-  final int sizeInBytes;
-
-  FileDetails({
-    required this.type,
-    required this.format,
-    this.duration,
-    this.width,
-    this.height,
-    required this.sizeInBytes,
-  });
-
-  bool get isVisual => type == MediaType.video || type == MediaType.image;
-}
-
 class FFmpegEngine implements CompressionEngine {
   FFmpegEngine(this.ffmpegPath);
 
